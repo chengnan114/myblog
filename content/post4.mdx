@@ -1,0 +1,82 @@
+---
+title: 'TypeScript Best Practices'
+description: 'Write better TypeScript code with these essential best practices'
+date: '2024-01-01'
+---
+
+TypeScript has become essential for building robust JavaScript applications. Here are some best practices to follow.
+
+## Use Strict Mode
+
+Always enable strict mode in your `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "strict": true
+  }
+}
+```
+
+## Avoid `any`
+
+The `any` type defeats TypeScript's purpose. Use `unknown` instead:
+
+```typescript
+// Bad
+function processData(data: any) {
+  return data.value
+}
+
+// Good
+function processData(data: unknown) {
+  if (typeof data === 'object' && data !== null && 'value' in data) {
+    return (data as { value: string }).value
+  }
+}
+```
+
+## Type Inference
+
+Let TypeScript infer types when possible:
+
+```typescript
+// Bad
+const count: number = 0
+
+// Good
+const count = 0
+```
+
+## Use Utility Types
+
+TypeScript provides useful utility types:
+
+```typescript
+interface User {
+  id: number
+  name: string
+  email: string
+  password: string
+}
+
+// Pick specific properties
+type PublicUser = Pick<User, 'id' | 'name' | 'email'>
+
+// Omit specific properties
+type CreateUser = Omit<User, 'id'>
+```
+
+## Type Guards
+
+Write type guards to narrow types:
+
+```typescript
+function isString(value: unknown): value is string {
+  return typeof value === 'string'
+}
+```
+
+## Conclusion
+
+Following these best practices will help you write more maintainable and type-safe TypeScript code!

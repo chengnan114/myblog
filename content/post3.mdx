@@ -1,0 +1,66 @@
+---
+title: 'Tailwind CSS Tips and Tricks'
+description: 'Practical tips for writing better Tailwind CSS code'
+date: '2024-01-05'
+---
+
+Tailwind CSS has become the go-to utility-first CSS framework for many developers. Here are some tips to write cleaner, more maintainable code.
+
+## Use Custom Configurations
+
+Don't be afraid to extend the default theme:
+
+```javascript
+// tailwind.config.js
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          light: '#b8c5d6',
+          DEFAULT: '#64748b',
+          dark: '#334155',
+        }
+      }
+    }
+  }
+}
+```
+
+## Extract Components
+
+For repeated patterns, extract them into components:
+
+```tsx
+function Card({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+      {children}
+    </div>
+  )
+}
+```
+
+## Dark Mode
+
+Tailwind makes dark mode easy with the `dark:` modifier:
+
+```tsx
+<div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  This adapts to the theme
+</div>
+```
+
+## Responsive Design
+
+Use responsive prefixes for mobile-first design:
+
+```tsx
+<div className="text-sm md:text-base lg:text-lg">
+  Responsive text size
+</div>
+```
+
+## Conclusion
+
+Tailwind CSS is incredibly powerful once you master these patterns. Start simple and add complexity as needed!

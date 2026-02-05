@@ -1,0 +1,84 @@
+---
+title: 'Understanding CSS Grid'
+description: 'Master CSS Grid layout with practical examples'
+date: '2023-12-15'
+---
+
+CSS Grid is a powerful 2D layout system that makes complex layouts simple. Let's dive in!
+
+## Basic Grid Setup
+
+Create a grid container:
+
+```css
+.container {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+}
+```
+
+## Grid Template Areas
+
+Named areas make layouts more readable:
+
+```css
+.layout {
+  display: grid;
+  grid-template-areas:
+    "header header header"
+    "sidebar content content"
+    "footer footer footer";
+}
+
+.header { grid-area: header; }
+.sidebar { grid-area: sidebar; }
+.content { grid-area: content; }
+.footer { grid-area: footer; }
+```
+
+## Responsive Grids
+
+Auto-fit creates responsive columns automatically:
+
+```css
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+```
+
+## Grid vs Flexbox
+
+When to use each:
+
+- **Grid**: 2D layouts (rows AND columns)
+- **Flexbox**: 1D layouts (rows OR columns)
+
+## Common Patterns
+
+### Holy Grail Layout
+
+```css
+.grail {
+  display: grid;
+  grid-template-columns: 200px 1fr 200px;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+}
+```
+
+### Card Grid
+
+```css
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+}
+```
+
+## Conclusion
+
+CSS Grid is essential for modern web layouts. Practice these patterns to become proficient!

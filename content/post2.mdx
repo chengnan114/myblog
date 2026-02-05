@@ -1,0 +1,43 @@
+---
+title: 'Understanding React Server Components'
+description: 'Deep dive into React Server Components and how they revolutionize React development'
+date: '2024-01-10'
+---
+
+React Server Components (RSC) are a new feature that changes how we think about building React applications. Let's explore what they are and why they matter.
+
+## What are Server Components?
+
+Server Components are components that render on the server, reducing the amount of JavaScript sent to the client. They can directly access backend resources.
+
+## Benefits
+
+- **Zero Bundle Size**: Server Components don't add to your JavaScript bundle
+- **Direct Backend Access**: Query databases directly in components
+- **Automatic Code Splitting**: Load only what's needed
+- **Improved Performance**: Less JavaScript means faster page loads
+
+## Example
+
+```typescript
+// Server Component (runs on server)
+async function UserProfile({ userId }: { userId: string }) {
+  const user = await db.user.findUnique({ where: { id: userId } })
+
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      <p>{user.email}</p>
+    </div>
+  )
+}
+```
+
+## Client vs Server Components
+
+Understanding when to use each type is crucial:
+
+- Use **Server Components** for data fetching, static content, and sensitive operations
+- Use **Client Components** for interactivity, browser APIs, and state management
+
+Stay tuned for more advanced patterns!

@@ -1,0 +1,84 @@
+---
+title: 'Building a Blog with Next.js and MDX'
+description: 'Complete guide to creating a blog with Next.js 14 and MDX support'
+date: '2023-12-28'
+---
+
+Creating a blog with modern tools has never been easier. Let's walk through building one with Next.js and MDX.
+
+## Why MDX?
+
+MDX allows you to use JSX components inside Markdown. This means you can:
+
+- Create custom components
+- Use React for interactive content
+- Maintain the simplicity of Markdown
+- Import and use any React component
+
+## Setting Up MDX
+
+First, install the dependencies:
+
+```bash
+npm install @next/mdx @mdx-js/loader @mdx-js/react
+```
+
+Configure Next.js for MDX:
+
+```javascript
+// next.config.mjs
+import createMDX from '@next/mdx'
+
+const nextConfig = {
+  pageExtensions: ['js', 'jsx', 'mdx', 'ts', 'tsx'],
+}
+
+const withMDX = createMDX({
+  extension: /\.mdx?$/,
+})
+
+export default withMDX(nextConfig)
+```
+
+## Creating Blog Posts
+
+Each post is an MDX file with frontmatter:
+
+```mdx
+---
+title: 'My Post'
+description: 'Post description'
+date: '2024-01-01'
+---
+
+# Your Content Here
+
+Some markdown content with **formatting**.
+```
+
+## Rendering MDX
+
+Use `next-mdx-remote` for server-side rendering:
+
+```tsx
+import { MDXRemote } from 'next-mdx-remote/rsc'
+
+export default function Post({ content }: { content: string }) {
+  return <MDXRemote source={content} components={components} />
+}
+```
+
+## Code Highlighting
+
+Add Shiki for beautiful code highlighting:
+
+```tsx
+import { getHighlighter } from 'shiki'
+
+const highlighter = await getHighlighter({ theme: 'github-dark' })
+const html = highlighter.codeToHtml(code, { lang: 'typescript' })
+```
+
+## Conclusion
+
+Building a blog with Next.js and MDX gives you the best of both worlds: the simplicity of Markdown and the power of React. Start building yours today!
