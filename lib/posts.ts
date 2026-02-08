@@ -9,6 +9,7 @@ export interface Post {
   content?: string
   excerpt?: string
   readingTime?: number
+  tags?: string[]
 }
 
 const postsDirectory = path.join(process.cwd(), 'content')
@@ -57,6 +58,7 @@ export function getAllPosts(): Post[] {
         date: data.date,
         excerpt: generateExcerpt(content || ''),
         readingTime: calculateReadingTime(content || ''),
+        tags: data.tags || [],
       } as Post
     })
     .sort((a, b) => (a.date < b.date ? 1 : -1))
@@ -77,6 +79,8 @@ export function getPostBySlug(slug: string): Post | null {
       description: data.description,
       date: data.date,
       content,
+      readingTime: calculateReadingTime(content || ''),
+      tags: data.tags || [],
     } as Post
   } catch {
     return null
@@ -99,5 +103,23 @@ export function getPaginatedPosts(page: number = 1, postsPerPage: number = 6) {
     posts,
     totalPages,
     currentPage: page,
+  }
+}
+
+// 获取上一篇和下一篇文章
+export function getAdjacentPosts(currentSlug: string): {
+  prev: Post | null
+  next: Post | null
+} {
+  const allPosts = getAllPosts()
+  const currentIndex = allPosts.findIndex((post) => post.slug === currentSlug)
+
+  if (currentIndex === -1) {
+    return { prev: null, next: null }
+  }
+
+  return {
+    prev: currentIndex > 0 ? allPosts[currentIndex - 1] : null,
+    next: currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1] : null,
   }
 }
