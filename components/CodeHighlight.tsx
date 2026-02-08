@@ -5,12 +5,13 @@ import { useEffect, useState } from 'react'
 interface CodeProps {
   children?: string
   className?: string
+  language?: string
   [key: string]: any
 }
 
-export function CodeHighlight({ children, className, ...props }: CodeProps) {
+export function CodeHighlight({ children, className, language: langProp, ...props }: CodeProps) {
   const [highlightedCode, setHighlightedCode] = useState<string>('')
-  const language = className?.replace(/language-/, '') || 'text'
+  const language = langProp || className?.replace(/language-/, '') || 'text'
 
   useEffect(() => {
     async function highlight() {
