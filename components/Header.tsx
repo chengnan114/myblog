@@ -1,17 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { useTheme } from 'next-themes'
-import { useEffect, useState } from 'react'
+import { ThemeToggle } from './ThemeToggle'
 
 export default function Header() {
-  const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
   return (
     <header className="border-b border-gray-200 dark:border-gray-800">
       <nav className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
@@ -37,15 +29,7 @@ export default function Header() {
           >
             About
           </Link>
-          {mounted && (
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
-          )}
+          <ThemeToggle />
         </div>
       </nav>
     </header>

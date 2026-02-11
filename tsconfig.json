@@ -27,10 +27,7 @@
         "./*"
       ]
     },
-    "mdx": {
-      "jsx": true,
-      "jsxImportSource": "@mdx-js/react"
-    }
+
   },
   "include": [
     "next-env.d.ts",
