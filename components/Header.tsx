@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { ThemeToggle } from './ThemeToggle'
+import { SearchButton } from './Search'
 
 export default function Header() {
   return (
@@ -29,6 +30,7 @@ export default function Header() {
           >
             About
           </Link>
+          <SearchButton />
           <a
             href="/rss.xml"
             target="_blank"
