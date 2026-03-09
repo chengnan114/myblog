@@ -25,3 +25,159 @@ body {
     text-wrap: balance;
   }
 }
+
+/* ========== 代码高亮块样式 ========== */
+
+.code-block-wrapper {
+  margin: 1.5rem 0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.dark .code-block-wrapper {
+  border-color: #3a3d4d;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* 顶部工具栏 */
+.code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: #f6f8fa;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.8rem;
+}
+
+.dark .code-block-header {
+  background: #21222c;
+  border-bottom-color: #3a3d4d;
+}
+
+.code-block-lang {
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dark .code-block-lang {
+  color: #8b8e9b;
+}
+
+/* 复制按钮 */
+.code-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.code-copy-btn:hover {
+  color: #1f2937;
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.dark .code-copy-btn {
+  color: #8b8e9b;
+  border-color: #4a4d5e;
+}
+
+.dark .code-copy-btn:hover {
+  color: #f8f8f2;
+  background: #3a3d4d;
+  border-color: #6272a4;
+}
+
+/* 代码主体区域 */
+.code-block-body {
+  display: flex;
+  overflow-x: auto;
+}
+
+/* 行号 */
+.code-line-numbers {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 0;
+  padding-left: 1rem;
+  padding-right: 0.75rem;
+  text-align: right;
+  user-select: none;
+  background: #f6f8fa;
+  border-right: 1px solid #e5e7eb;
+  color: #9ca3af;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  flex-shrink: 0;
+}
+
+.dark .code-line-numbers {
+  background: #21222c;
+  border-right-color: #3a3d4d;
+  color: #6272a4;
+}
+
+/* shiki 生成的代码内容 */
+.code-block-content {
+  flex: 1;
+  overflow-x: auto;
+  min-width: 0;
+}
+
+.code-block-content pre {
+  margin: 0 !important;
+  padding: 1rem !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  font-size: 0.875rem !important;
+  line-height: 1.6 !important;
+}
+
+.code-block-content code {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace !important;
+  font-size: 0.875rem !important;
+  background: none !important;
+  padding: 0 !important;
+}
+
+/* 自定义滚动条 */
+.code-block-body::-webkit-scrollbar,
+.code-block-content::-webkit-scrollbar {
+  height: 6px;
+}
+
+.code-block-body::-webkit-scrollbar-track,
+.code-block-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.dark .code-block-body::-webkit-scrollbar-track,
+.dark .code-block-content::-webkit-scrollbar-track {
+  background: #21222c;
+}
+
+.code-block-body::-webkit-scrollbar-thumb,
+.code-block-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.dark .code-block-body::-webkit-scrollbar-thumb,
+.dark .code-block-content::-webkit-scrollbar-thumb {
+  background: #4a4d5e;
+  border-radius: 3px;
+}
