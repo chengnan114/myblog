@@ -30,9 +30,9 @@ export function Comments() {
       </h2>
       <GiscusComponent
         repo="chengnan114/myblog"
-        repoId=""
+        repoId="R_kgDORJIZ5A"
         category="Announcements"
-        categoryId=""
+        categoryId="DIC_kwDORJIZ5M4C4BLT"
         mapping="pathname"
         strict="0"
         reactionsEnabled="1"
