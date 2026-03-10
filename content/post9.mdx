@@ -1,0 +1,135 @@
+---
+title: "零成本！在 Next.js 博客中集成 Giscus 评论系统"
+date: "2024-03-11"
+description: "基于 GitHub Discussions 构建的轻量级、无广告且完全免费的评论系统。无需自建数据库，五分钟完成接入，并完美支持深色模式切换。"
+tags: ["Next.js", "React", "Giscus", "GitHub", "教程"]
+---
+
+在静态博客或个人网站中搭建评论系统一直是个头疼的问题。自建数据库成本高、维护繁琐；用第三方评论插件（如 Disqus）往往伴随广告、访问慢甚至可能被墙。
+
+直到我发现了 **[Giscus](https://giscus.app/zh-CN)**。
+
+Giscus 是一个由 GitHub Discussions 驱动的评论系统。它的原理很简单：访客在你的博客里留下的每一条评论，都会自动同步到你 GitHub 仓库的 Discussions 分区下中。**数据由 GitHub 托管，完全免费，无追踪、无广告，且对开发者极其友好。**
+
+本文将手把手带你完成 Giscus 在 Next.js 项目中的配置与集成。
+
+## 一、前期准备：配置 GitHub 仓库
+
+在使用 Giscus 之前，你的网站源码所在的 GitHub 仓库需要满足几个前置条件：
+
+1. **公开仓库**：你的 GitHub 仓库必须是 Public 的，私有拉取不到数据。
+2. **启用 Discussions**：
+   - 进入你的 GitHub 仓库主页。
+   - 点击上方的 `Settings`。
+   - 向下滚动找到 `Features` 模块，勾选 `Discussions`。
+3. **安装 Giscus App**：
+   - 访问 [Giscus App 授权页面](https://github.com/apps/giscus)。
+   - 点击 `Install`，将其授权给你的特定项目仓库。
+
+## 二、获取配置参数
+
+前往 [Giscus 官方主页](https://giscus.app/zh-CN)，按照页面提示填入你的仓库名（例如 `owner/repo`）。
+
+系统会自动验证仓库是否符合条件，如果成功，您需要关注生成代码区块中的这四个**核心参数**：
+- `data-repo`
+- `data-repo-id`
+- `data-category` (通常选择 `Announcements`)
+- `data-category-id`
+
+请将这四个值保存下来，马上就要用到。
+
+## 三、在 Next.js 中编写 Comments 组件
+
+在 React/Next.js 生态中，我们可以直接使用官方提供的包裹层 `@giscus/react` 来代替原生 Script 标签。这不仅更容易传参，而且能更平滑地跟随页面的主题（暗色/浅色）进行动态切换。
+
+首先安装依赖：
+```bash
+npm install @giscus/react
+```
+
+然后，在 `components` 目录下创建 `Comments.tsx`：
+
+```tsx
+'use client'
+
+import { useTheme } from 'next-themes'
+import { useEffect, useState } from 'react'
+import GiscusComponent from '@giscus/react'
+
+export function Comments() {
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  // 避免 Hydration Mismatch
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // 加载状态/骨架屏
+  if (!mounted) {
+    return (
+      <div className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-700">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded" />
+          <div className="h-32 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <section className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-700">
+      <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">
+        💬 评论
+      </h2>
+      <GiscusComponent
+        repo="你的GitHub用户名/你的仓库名"
+        repoId="你的_REPO_ID"
+        category="Announcements" // 你设置的讨论分类
+        categoryId="你的_CATEGORY_ID"
+        mapping="pathname"      // 非常重要：通过文章路径与 GitHub Discussion 建立一对一映射
+        strict="0"
+        reactionsEnabled="1"    // 允许表态表情 (点赞、大笑等)
+        emitMetadata="0"
+        inputPosition="top"     // 评论框放在上方
+        theme={resolvedTheme === 'dark' ? 'dark' : 'light'} // 无缝对接你的系统主题
+        lang="zh-CN"            // 本地化语言
+        loading="lazy"          // 懒加载优化性能
+      />
+    </section>
+  )
+}
+```
+
+### 参数解析：
+* **`mapping="pathname"`**：最为推荐的策略。Giscus 会提取你当前页面的由 URL pathname（例如 `/blog/post1`），去 GitHub 寻找名称与之相同的 Discussion。如果找不到（且有用户真的发表了首条评论），Giscus 机器人会自动在 GitHub 创建这条分类！
+* **`theme={resolvedTheme...}`**：通过监听 `next-themes` 获取的主题变量，无论是用户手动切换系统主题，还是点击了你的主题切换按钮，底部的评论组件风格都会跟着瞬间自适应，体验极佳。
+
+## 四、将组件挂载到文章底部
+
+最后一步，在你用作文章详情页的布局文件（如 `app/blog/[slug]/page.tsx`）的底部引入刚刚封装的组件：
+
+```tsx
+// app/blog/[slug]/page.tsx
+import { Comments } from '@/components/Comments'
+
+export default async function BlogPost({ params }) {
+  // ...获取文章内容的代码...
+
+  return (
+    <div className="max-w-[768px] mx-auto px-4 py-8">
+      {/* 文章正文区域 */}
+      <article className="prose">
+        {/* ... */}
+      </article>
+
+      {/* 底部挂载评论组件 */}
+      <Comments />
+    </div>
+  )
+}
+```
+
+## 结语
+
+使用 Giscus 给静态博客赋能是一种"四两拨千斤"的做法。有了它，你不仅拥有了一个安全免费、防攻击、防垃圾信息的企业级留言系统，还能让访客直接用他们的 GitHub 账号进行身份验证，非常适合以技术交流为主的个人站点。赶紧给你的 Next.js 博客装上吧！

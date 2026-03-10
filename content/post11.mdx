@@ -1,0 +1,151 @@
+---
+title: "Next.js 博客终极 SEO 优化指南：从 Sitemap 到动态 OG 图片"
+date: "2024-03-13"
+description: "拒绝在群里发链接时只有一个孤独的灰色占位符！带你手把手全面升级博客的 SEO 等级：JSON-LD 结构化数据、Robot 抓取指令、更智能的 Metadata，以及用 Edge Runtime 动态合成带有文章信息的高清 Open Graph 分享海报。"
+tags: ["Next.js", "SEO", "前端开发", "教程", "Open Graph"]
+---
+
+俗话说，酒香也怕巷子深。哪怕你的博客文章写得再好，体验做得再花里胡哨，不被搜索引擎收录就是白搭。而且作为开发者，当你满心欢喜地把自己写的文章发到技术交流群，却发现微信、Telegram 抓不出任何图片，只有一个难看的灰色方框，这无疑是一件很扫兴的事（虽然微信由于其本身的限制对标准协议不太宽容，但其他绝大部分协作软件和海外社交媒体是强烈依赖 OG 图片的）。
+
+在 Next.js 的 App Router 架构中，官方提供了一整套非常现代化的 SEO 内置工具。本文记录了我为博客做全套“企业级” SEO 增强的详细过程。
+
+## 1. 基础建设：Sitemap 与 Robots.txt 配置
+
+Sitemap (网站地图) 是你主动递交给 Google 的一张“活点地图”，告诉爬虫你的网站有哪些页面值得索引。在 Next.js 里不需要写什么繁杂的脚本。
+
+创建 `app/sitemap.ts`：
+
+```typescript
+import { getAllPosts } from '@/lib/posts'
+import { MetadataRoute } from 'next'
+
+const SITE_URL = 'https://你的域名'
+
+export default function sitemap(): MetadataRoute.Sitemap {
+  const posts = getAllPosts()
+
+  // 动态生成所有博文的 URL
+  const blogUrls: MetadataRoute.Sitemap = posts.map((post) => ({
+    url: `${SITE_URL}/blog/${post.slug}`,
+    lastModified: new Date(post.date),
+    changeFrequency: 'weekly',
+    priority: 0.8,
+  }))
+
+  return [
+    { url: SITE_URL, lastModified: new Date(), changeFrequency: 'daily', priority: 1 },
+    { url: `${SITE_URL}/blog`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
+    ...blogUrls,
+  ]
+}
+```
+
+再创建一个同级的 `app/robots.ts`，防止爬虫抓取一些我们不想被索引的 API 地址并指向建好的 Sitemap：
+
+```typescript
+import { MetadataRoute } from 'next'
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: [{ userAgent: '*', allow: '/', disallow: ['/api/'] }],
+    sitemap: 'https://你的域名/sitemap.xml',
+  }
+}
+```
+
+## 2. JSON-LD 结构化数据 (Schema.org)
+
+当你遇到好的文章时，为什么 Google 搜出来的结果有摘要甚至有缩略图和卡片？这是结构化数据（Structured Data）的功劳。我们在展示文章详情的路由 `app/blog/[slug]/page.tsx` 中注入一块 `Article` schema。
+
+它其实是一段不可见的 JSON 代码，对访客隐藏，专门给机器看的：
+
+```tsx
+// app/blog/[slug]/page.tsx
+export default async function BlogPost({ params }) {
+  // ... 忽略原有的页面逻辑 ...
+  
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.description,
+    datePublished: post.date, // 搜索引擎极度看重发布时间
+    author: { '@type': 'Person', name: '你的名字', url: SITE_URL },
+    url: `${SITE_URL}/blog/${slug}`,
+    keywords: post.tags?.join(', '),
+  }
+
+  return (
+    <div>
+      {/* 隐藏并安全地将其注入 head */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      {/* 渲染正文 ... */}
+    </div>
+  )
+}
+```
+
+## 3. 高潮：基于 Edge 运行时的动态 OG 分享图合成！
+
+上面做的都是看不见的苦工，现在让分享本身变得炫酷起来！你需要实现分享出每一篇文章的时候，图片上都自动带上这篇文章的名字和你的博客 Logo。
+
+在 Next.js 中，提供了一个名为 `ImageResponse` 的核心类（底层基于 Vercel 自家的 Satori 引擎，能把 HTML 和 CSS 直接转化为 SVG 然后光速转成图片）。
+
+在文章路由下新建 `app/blog/[slug]/opengraph-image.tsx`：
+
+```tsx
+import { ImageResponse } from 'next/og'
+import { getPostBySlug } from '@/lib/posts'
+
+// 注意：它需要构建在 Vercel Edge Serverless 环境或者 Node.js 中动态生图
+// 这几个变量会被 Next.js 自动捕获去生成页面的 <meta og:image> 等属性
+export const alt = '文章封面'
+export const size = { width: 1200, height: 630 }
+export const contentType = 'image/png'
+
+export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const post = getPostBySlug(slug)
+
+  const title = post?.title || '未命名文章'
+  const description = post?.description || ''
+
+  // HTML + CSS 布局语法（受限于 satori 的标准只能用内联和 display:flex）
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '60px',
+          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+        }}
+      >
+        <div style={{ color: '#94a3b8', fontSize: 24, display: 'flex' }}>你的技术博客</div>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center' }}>
+          <div style={{ color: 'white', fontSize: 52, fontWeight: 800, display: 'flex' }}>
+             {title}
+          </div>
+          <div style={{ color: '#94a3b8', fontSize: 24, marginTop: 20, display: 'flex' }}>
+             {description.slice(0, 80) + '...'}
+          </div>
+        </div>
+      </div>
+    ),
+    { ...size }
+  )
+}
+```
+
+### 为什么这样做体验极佳？
+1. **零学习成本配置**：只要组件命名为 `opengraph-image.tsx`，Next.js 就会在构建时帮你在当前路径的 `<head>` 中补全对应的绝对地址 meta 标签。
+2. **免除了大量的截屏和后期设计成本**：作为没有设计能力的程序员，依靠几句 flex 布局画出来的海报，永远比默认的框框体面得多。
+3. **极速生成且可缓存**：只要部署在支持 Edge 的平台（比如 Vercel），即使是几百篇文章也就是毫秒级别合成，并挂载 Edge Cache 永久缓存在 CDN 节点上。
+
+现在，去尝试在飞书或 Discord 发一下自己网站的链接试试看吧！绝对会让看到的人觉得：“哦哟，这是一个用心的专业站点”。

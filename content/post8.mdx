@@ -1,0 +1,232 @@
+---
+title: "在 Next.js 博客中集成带有复制按钮和行号的 Shiki 代码高亮"
+date: "2024-03-10"
+description: "使用最新的 Shiki v1 引擎，为 Next.js (App Router) 博客打造极致的代码阅读体验，支持深/浅色模式无缝切换、代码行号及一键复制功能。"
+tags: ["Next.js", "React", "前端开发", "教程", "Shiki"]
+---
+
+作为一名开发者，博客中最核心的元素莫过于代码块。一个体验优秀的代码高亮组件，不仅能提升读者的阅读体验，更能彰显作者的技术品味。
+
+在对比了 Prism.js 和 Highlight.js 之后，我最终选择了 **[Shiki](https://shiki.style/)** 为我的 Next.js 博客提供代码高亮。Shiki 基于 VS Code 的 TextMate 语法，能提供与编辑器完全一致的准确高亮，并且支持零 JS 运行时的预渲染。本文将带你一步步实现一个包含**双主题切换、代码行号、语言标签和一键复制**功能的高级代码块组件。
+
+## 核心需求分析
+
+优秀的博客代码块应该具备以下素质：
+1. **精确的语法高亮**：支持常见的前端和后端语言
+2. **主题适配**：能跟随系统或网站的深/浅色模式自动切换（Light/Dark Mode）
+3. **展示行号**：方便长代码的阅读和讨论
+4. **一键复制**：提供直观的复制按钮，并有成功反馈
+5. **语言显示**：在右上角或左上角标明当前代码块的所属语言
+
+## 1. 安装依赖
+
+首先，我们需要安装 Shiki 以及用于处理 Markdown 渲染的依赖（本文假设你已经在使用 `next-mdx-remote` 或类似方案在渲染 MDX）。
+
+```bash
+npm install shiki
+```
+
+## 2. 编写 CodeHighlight 核心组件
+
+我们将代码块封装成一个独立的 React Client Component。为了支持暗色模式，我们需要引入 `next-themes` 获取当前的主题状态，并在渲染前展示骨架屏以避免水合不匹配 (Hydration mismatch)。
+
+我们在 `components` 目录下创建 `CodeHighlight.tsx`：
+
+```tsx
+'use client'
+
+import { useEffect, useState } from 'react'
+import { getHighlighter, Highlighter } from 'shiki'
+import { useTheme } from 'next-themes'
+
+let highlighterPromise: Promise<Highlighter> | null = null
+
+export function CodeHighlight({
+  code,
+  language = 'text',
+  showLineNumbers = true,
+}: {
+  code: string
+  language?: string
+  showLineNumbers?: boolean
+}) {
+  const [html, setHtml] = useState<string>('')
+  const [isCopied, setIsCopied] = useState(false)
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  // 避免服务端和客户端渲染不一致
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // 异步加载 Shiki 高亮器
+  useEffect(() => {
+    async function highlightCode() {
+      if (!highlighterPromise) {
+        highlighterPromise = getHighlighter({
+          themes: ['github-light', 'dracula'],
+          langs: ['javascript', 'typescript', 'tsx', 'jsx', 'css', 'html', 'json', 'bash', 'markdown', 'python', 'go', 'rust', 'java', 'swift'],
+        })
+      }
+      
+      const highlighter = await highlighterPromise
+      const theme = resolvedTheme === 'dark' ? 'dracula' : 'github-light'
+      
+      try {
+        const highlightedHtml = highlighter.codeToHtml(code, {
+          lang: language,
+          theme: theme,
+        })
+        setHtml(highlightedHtml)
+      } catch (e) {
+        // 如果语言不支持，降级为普通文本
+        const fallbackHtml = highlighter.codeToHtml(code, {
+          lang: 'text',
+          theme: theme,
+        })
+        setHtml(fallbackHtml)
+      }
+    }
+
+    if (mounted) {
+      highlightCode()
+    }
+  }, [code, language, resolvedTheme, mounted])
+
+  // 处理复制逻辑
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code)
+      setIsCopied(true)
+      setTimeout(() => setIsCopied(false), 2000)
+    } catch (err) {
+      console.error('复制失败:', err)
+    }
+  }
+
+  // 组件未挂载前显示骨架屏
+  if (!mounted) {
+    return (
+      <div className="my-6 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800">
+        <div className="h-10 bg-gray-100 dark:bg-gray-800 animate-pulse border-b border-gray-200 dark:border-gray-700" />
+        <div className="h-48 bg-[#f8f9fa] dark:bg-[#282a36] animate-pulse" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative group my-6 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm transition-all hover:shadow-md">
+      {/* 顶部工具栏 */}
+      <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-800 backdrop-blur-sm">
+        <div className="flex items-center gap-2 text-xs font-mono text-gray-500 dark:text-gray-400 select-none">
+          <div className="flex gap-1.5 mr-2">
+            <div className="w-3 h-3 rounded-full bg-red-400/80" />
+            <div className="w-3 h-3 rounded-full bg-amber-400/80" />
+            <div className="w-3 h-3 rounded-full bg-green-400/80" />
+          </div>
+          {language.toUpperCase()}
+        </div>
+        
+        {/* 复制按钮 */}
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-white/50 hover:bg-white dark:bg-gray-800/50 dark:hover:bg-gray-700 rounded-md transition-all shadow-sm border border-black/5 dark:border-white/5"
+          aria-label="复制代码"
+        >
+          {isCopied ? (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span className="text-green-500">已复制!</span>
+            </>
+          ) : (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>复制代码</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Shiki 渲染的代码主体 */}
+      <div
+        className={`relative overflow-x-auto text-[14px] leading-relaxed custom-scrollbar ${
+          showLineNumbers ? 'show-line-numbers' : ''
+        }`}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </div>
+  )
+}
+```
+
+## 3. 全局 CSS 注入 (行号与滚动条控制)
+
+仅仅通过 JS 渲染还不够，为了让行号完美对齐，并在代码溢出时提供优雅的滚动体验，我们需要在 `globals.css` 中注入特定的样式。
+
+找到你的根 CSS 文件，添加以下关键样式：
+
+```css
+/* 自定义代码块滚动条 */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.3);
+  border-radius: 4px;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(75, 85, 99, 0.3);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.5);
+}
+
+/* Shiki 内部 pre 容器规整化 */
+.custom-scrollbar pre {
+  margin: 0 !important;
+  padding: 1rem 0 !important;
+  background-color: transparent !important;
+}
+.dark .custom-scrollbar {
+  background-color: #282a36 !important;
+}
+.custom-scrollbar {
+  background-color: #f8f9fa !important;
+}
+
+/* 行号系统实现方案 */
+.show-line-numbers code {
+  counter-reset: step;
+  counter-increment: step 0;
+}
+.show-line-numbers code .line {
+  display: inline-block;
+  min-width: 100%;
+  padding: 0 1.5rem 0 3.5rem !important; /* 为左侧行号留出空间 */
+  position: relative;
+}
+.show-line-numbers code .line::before {
+  position: absolute;
+  left: 0;
+  content: counter(step);
+  counter-increment: step;
+  width: 2.5rem;
+  text-align: right;
+  padding-right: 0.8rem;
+  display: inline-block;
+  color: rgba(156, 163, 175, 0.5); /* 行号颜色 */
+  user-select: none; /* 阻止复制时带上行号 */
+  border-right: 1px solid rgba(156, 163, 175, 0.2);
+}
+```
+
+## 总结
+
+至此，一个体验极佳的博客代码高亮组件就完成了。我们使用了 `shiki` 的 `codeToHtml` 接口进行安全的转化，结合 React 的 `dangerouslySetInnerHTML` 注入页面。配合 `next-themes` 的监听，在深色和浅色模式切换时，我们会动态在 `dracula` 和 `github-light` 两套经典主题间丝滑切换。
+
+这套方案不仅颜值高，而且因为行号是用 CSS `counter` 实现并屏蔽了 `user-select`，所以读者在拖拽复制大段代码时，**绝对不会因为不小心全选而把行号也复制进去**。这才是对开发者最友好的细节设计！

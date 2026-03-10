@@ -1,0 +1,156 @@
+---
+title: "提升博客体验：给 Next.js 站点添加 RSS 订阅与毫秒级全局搜索"
+date: "2024-03-12"
+description: "通过纯客户端方案 FlexSearch 打造极速支持 Cmd+K 的全站搜索体验，并为极客读者提供标准的 RSS.xml 订阅源生成方案。"
+tags: ["Next.js", "React", "搜索", "RSS", "工具", "性能优化"]
+---
+
+在当今的技术博客生态中，虽然社交媒体分发大行其道，但对于真正的技术阅读者来说，**站内搜索的效率**和**信息源的获取方式 (RSS)** 依然是衡量一个技术站点体验好坏的核心标尺。
+
+今天我将分享如何在 Next.js 14 中，同时实现这两个对阅读体验提升巨大的功能。
+
+## 实现标准 RSS 订阅源
+
+对于很多技术大佬来说，RSS 阅读器不仅没有被淘汰，反而在算法泛滥的今天成为了唯一能掌控的信息流源头。
+
+在 Next.js 的 App Router 中，由于内置了强大的 Route Handlers API，生成一个 `rss.xml` 变得非常直观。我们只需要安装 `rss` 包：
+
+```bash
+npm install rss
+npm install -D @types/rss
+```
+
+接着，利用 Next.js 最新的 API 特性，由于我们需要把接口暴露为固定的 `.xml` 结尾地址，我们可以在 `app` 下创建一个名为 `rss.xml` 的静态文件夹，并在里面放入 `route.ts`：
+
+```typescript
+// app/rss.xml/route.ts
+import RSS from 'rss'
+import { getAllPosts } from '@/lib/posts' // 假设你有一个获取所有 Markdown 的方法
+
+const SITE_URL = 'https://你的域名'
+
+export async function GET() {
+  // 我们只取最新的 10 篇文章避免 XML 过大
+  const posts = getAllPosts().slice(0, 10)
+
+  const feed = new RSS({
+    title: '你的博客标题',
+    description: '你的博客描述与宣发语',
+    site_url: SITE_URL,
+    feed_url: `${SITE_URL}/rss.xml`,
+    language: 'zh-CN',
+    pubDate: posts.length > 0 ? new Date(posts[0].date) : new Date(),
+    copyright: `© ${new Date().getFullYear()}`,
+  })
+
+  // 将文章组装成 Feed Items
+  posts.forEach((post) => {
+    feed.item({
+      title: post.title,
+      description: post.excerpt || post.description || '',
+      url: `${SITE_URL}/blog/${post.slug}`,
+      date: new Date(post.date),
+      author: '作者昵称',
+      categories: post.tags || [],
+    })
+  })
+
+  // 返回原生的 XML Response，并设置由 Vercel 托管的长期缓存
+  return new Response(feed.xml({ indent: true }), {
+    headers: {
+      'Content-Type': 'application/xml; charset=utf-8',
+      'Cache-Control': 's-maxage=3600, stale-while-revalidate',
+    },
+  })
+}
+```
+
+现在访问你的 `/rss.xml` 即可看到结构清晰的 XML 源数据！然后你就可以在你的 Header 导航栏加上一个醒目的橙色 RSS 图标引导大家订阅。
+
+---
+
+## 纯前端毫秒级检索：FlexSearch
+
+随着文章越来越多，站内搜索成了刚需。用 Algolia 太重（且有免费额度限制），每次请求服务器搜索又不够快。对于几百篇以内的个人博客，将搜索逻辑**完全下放到客户端浏览器**不仅能实现真正的"输入即搜索"，体验也是最好的。
+
+我选择了目前 Node/Browser 界性能最好的搜索库：**[FlexSearch](https://github.com/nextapps-de/flexsearch)**。
+
+### 1. 构建轻量 JSON 搜索 API
+为了不让客户端初次加载过大，我们需要一个独立的按需 API，剔除正文，仅提供 ID、标题和摘要：
+
+```typescript
+// app/api/search/route.ts
+import { getAllPosts } from '@/lib/posts'
+import { NextResponse } from 'next/server'
+
+export async function GET() {
+  const posts = getAllPosts()
+
+  const searchData = posts.map((post) => ({
+    slug: post.slug,
+    title: post.title,
+    description: post.description || '',
+    excerpt: post.excerpt || '',
+    date: post.date,
+    tags: post.tags || [],
+  }))
+
+  return NextResponse.json(searchData, {
+    headers: { 'Cache-Control': 's-maxage=3600, stale-while-revalidate' },
+  })
+}
+```
+
+### 2. 构建唤起与快捷键 (Cmd + K) 弹窗
+很多著名开源站点都使用了 `Cmd/Ctrl + K` 直接呼出搜索。我们只需要监听浏览器的键盘事件并渲染一个全局覆盖（Overlay）。当它被唤起时，才正式去 fetch `/api/search`。
+
+```tsx
+useEffect(() => {
+  function handleKeyDown(e: KeyboardEvent) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault()
+      setIsOpen((prev) => !prev)
+    }
+    if (e.key === 'Escape') setIsOpen(false)
+  }
+
+  document.addEventListener('keydown', handleKeyDown)
+  return () => document.removeEventListener('keydown', handleKeyDown)
+}, [])
+```
+
+### 3. 使用 FlexSearch 构建索引与高亮
+当 fetch 拿到数组数据后，利用 FlexSearch 生成客户端内存级索引：
+
+```javascript
+import FlexSearch from 'flexsearch'
+
+// 初始化：Resolution=9 为高精度模式，Forward Tokenize 即时匹配输入前缀
+const index = new FlexSearch.Index({
+  tokenize: 'forward',
+  resolution: 9,
+})
+
+// 为每一篇添加索引
+data.forEach((post, i) => {
+  const searchable = `${post.title} ${post.description} ${post.tags.join(' ')}`
+  index.add(i, searchable)
+})
+
+// 手动高亮命中词的工具函数（非常重要的小细节！）
+function highlightText(text: string, query: string): React.ReactNode {
+  if (!query.trim()) return text
+  // 使用正则分割并用 <mark> 包裹命中部分
+  const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'))
+
+  return parts.map((part, i) =>
+    part.toLowerCase() === query.toLowerCase() ? (
+      <mark key={i} className="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5">{part}</mark>
+    ) : part
+  )
+}
+```
+
+通过这一套组合拳：客户端 Cmd+K 唤起 + Next.js Route handler 提供裁剪过的轻便 Json 数据 + FlexSearch 毫秒级内存分词和匹配 + 自定义关键字背景高亮。
+
+最终的用户体验绝佳。对于中小型站点来说，这是零成本且性能拉满的完美方案。
