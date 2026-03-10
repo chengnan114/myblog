@@ -15,19 +15,42 @@ export async function generateStaticParams() {
   }))
 }
 
+const SITE_URL = 'https://chengnanblog.cn'
+
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params
   const post = getPostBySlug(slug)
 
   if (!post) {
     return {
-      title: 'Post Not Found',
+      title: '文章未找到',
     }
   }
 
   return {
-    title: `${post.title} - My Blog`,
+    title: post.title,
     description: post.description,
+    keywords: post.tags,
+    authors: [{ name: 'chengnan' }],
+    openGraph: {
+      type: 'article',
+      locale: 'zh_CN',
+      url: `${SITE_URL}/blog/${slug}`,
+      title: post.title,
+      description: post.description,
+      siteName: 'chengnan 的技术博客',
+      publishedTime: post.date,
+      authors: ['chengnan'],
+      tags: post.tags,
+    },
+    twitter: {
+      card: 'summary',
+      title: post.title,
+      description: post.description,
+    },
+    alternates: {
+      canonical: `${SITE_URL}/blog/${slug}`,
+    },
   }
 }
 
@@ -41,8 +64,37 @@ export default async function BlogPost({ params }: PageProps) {
 
   const { prev, next } = getAdjacentPosts(slug)
 
+  // Article 结构化数据 (JSON-LD)
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.description,
+    datePublished: post.date,
+    author: {
+      '@type': 'Person',
+      name: 'chengnan',
+      url: SITE_URL,
+    },
+    publisher: {
+      '@type': 'Person',
+      name: 'chengnan',
+    },
+    url: `${SITE_URL}/blog/${slug}`,
+    keywords: post.tags?.join(', '),
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `${SITE_URL}/blog/${slug}`,
+    },
+  }
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
+      {/* 结构化数据 */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="max-w-[768px] mx-auto px-4 py-8 md:py-12">
         {/* 返回列表按钮 */}
         <Link

@@ -1,7 +1,7 @@
 import RSS from 'rss'
 import { getAllPosts } from '@/lib/posts'
 
-const SITE_URL = 'https://myblog-chengnan114.vercel.app'
+const SITE_URL = 'https://chengnanblog.cn'
 
 export async function GET() {
   const posts = getAllPosts().slice(0, 10)
