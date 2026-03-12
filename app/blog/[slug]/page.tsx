@@ -1,92 +1,92 @@
-import { getPostBySlug, getAllPosts, getAdjacentPosts } from '@/lib/posts'
-import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import { MDXContent } from '@/components/MDXComponents'
-import { Comments } from '@/components/Comments'
+import { getPostBySlug, getAllPosts, getAdjacentPosts } from "@/lib/posts";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { MDXContent } from "@/components/MDXComponents";
+import { Comments } from "@/components/Comments";
 
 interface PageProps {
-  params: Promise<{ slug: string }>
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
-  const posts = getAllPosts()
+  const posts = getAllPosts();
   return posts.map((post) => ({
     slug: post.slug,
-  }))
+  }));
 }
 
-const SITE_URL = 'https://chengnanblog.cn'
+const SITE_URL = "https://chengnanblog.cn";
 
 export async function generateMetadata({ params }: PageProps) {
-  const { slug } = await params
-  const post = getPostBySlug(slug)
+  const { slug } = await params;
+  const post = getPostBySlug(slug);
 
   if (!post) {
     return {
-      title: '文章未找到',
-    }
+      title: "文章未找到",
+    };
   }
 
   return {
     title: post.title,
     description: post.description,
     keywords: post.tags,
-    authors: [{ name: 'chengnan' }],
+    authors: [{ name: "chengnan" }],
     openGraph: {
-      type: 'article',
-      locale: 'zh_CN',
+      type: "article",
+      locale: "zh_CN",
       url: `${SITE_URL}/blog/${slug}`,
       title: post.title,
       description: post.description,
-      siteName: 'chengnan 的技术博客',
+      siteName: "chengnan 的技术笔记",
       publishedTime: post.date,
-      authors: ['chengnan'],
+      authors: ["chengnan"],
       tags: post.tags,
     },
     twitter: {
-      card: 'summary',
+      card: "summary",
       title: post.title,
       description: post.description,
     },
     alternates: {
       canonical: `${SITE_URL}/blog/${slug}`,
     },
-  }
+  };
 }
 
 export default async function BlogPost({ params }: PageProps) {
-  const { slug } = await params
-  const post = getPostBySlug(slug)
+  const { slug } = await params;
+  const post = getPostBySlug(slug);
 
   if (!post || !post.content) {
-    notFound()
+    notFound();
   }
 
-  const { prev, next } = getAdjacentPosts(slug)
+  const { prev, next } = getAdjacentPosts(slug);
 
   // Article 结构化数据 (JSON-LD)
   const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
+    "@context": "https://schema.org",
+    "@type": "Article",
     headline: post.title,
     description: post.description,
     datePublished: post.date,
     author: {
-      '@type': 'Person',
-      name: 'chengnan',
+      "@type": "Person",
+      name: "chengnan",
       url: SITE_URL,
     },
     publisher: {
-      '@type': 'Person',
-      name: 'chengnan',
+      "@type": "Person",
+      name: "chengnan",
     },
     url: `${SITE_URL}/blog/${slug}`,
-    keywords: post.tags?.join(', '),
+    keywords: post.tags?.join(", "),
     mainEntityOfPage: {
-      '@type': 'WebPage',
-      '@id': `${SITE_URL}/blog/${slug}`,
+      "@type": "WebPage",
+      "@id": `${SITE_URL}/blog/${slug}`,
     },
-  }
+  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
@@ -134,10 +134,10 @@ export default async function BlogPost({ params }: PageProps) {
           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-500">
             <div className="flex items-center gap-1">
               <time dateTime={post.date}>
-                {new Date(post.date).toLocaleDateString('zh-CN', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
+                {new Date(post.date).toLocaleDateString("zh-CN", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
                 })}
               </time>
             </div>
@@ -196,9 +196,7 @@ export default async function BlogPost({ params }: PageProps) {
 
         {/* MDX 内容 */}
         <article className="prose prose-lg dark:prose-invert max-w-none">
-          <div
-            className="text-[18px] leading-[1.8] text-gray-800 dark:text-gray-200"
-          >
+          <div className="text-[18px] leading-[1.8] text-gray-800 dark:text-gray-200">
             <MDXContent content={post.content} />
           </div>
         </article>
@@ -244,5 +242,5 @@ export default async function BlogPost({ params }: PageProps) {
         <Comments />
       </div>
     </div>
-  )
+  );
 }

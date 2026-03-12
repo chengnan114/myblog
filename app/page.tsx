@@ -30,7 +30,7 @@ export default function Home() {
 
         {/* 标题 */}
         <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          我的技术小院
+          我的技术笔记
         </h1>
 
         {/* 简介 */}
