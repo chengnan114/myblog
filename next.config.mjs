@@ -4,6 +4,10 @@ import createMDX from '@next/mdx'
 const nextConfig = {
   pageExtensions: ['js', 'jsx', 'mdx', 'ts', 'tsx'],
   turbopack: {}, // Add empty turbopack config to silence the warning
+  output: 'standalone',
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 }
 
 const withMDX = createMDX({

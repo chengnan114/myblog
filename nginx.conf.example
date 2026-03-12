@@ -1,0 +1,14 @@
+server {
+    listen 80;
+    server_name YOUR_DOMAIN_OR_IP; # 备案通过后换成您的域名
+
+    # 备案期间可以通过 IP 直接访问
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}

@@ -1,0 +1,73 @@
+name: Multi-Environment Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set Environment Variables
+        run: |
+          if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+            echo "ENV_NAME=prod" >> $GITHUB_ENV
+            echo "IMAGE_TAG=latest" >> $GITHUB_ENV
+            echo "PORT=3000" >> $GITHUB_ENV
+          else
+            echo "ENV_NAME=test" >> $GITHUB_ENV
+            echo "IMAGE_TAG=dev" >> $GITHUB_ENV
+            echo "PORT=3001" >> $GITHUB_ENV
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Aliyun Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ALIYUN_REGISTRY }}
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/myblog:${{ env.IMAGE_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          envs: ALIYUN_REGISTRY,ALIYUN_NAMESPACE,ALIYUN_USERNAME,ALIYUN_PASSWORD,IMAGE_TAG,PORT,ENV_NAME
+          script: |
+            # 登录阿里云镜像仓库
+            echo ${{ secrets.ALIYUN_PASSWORD }} | docker login --username=${{ secrets.ALIYUN_USERNAME }} --password-stdin ${{ secrets.ALIYUN_REGISTRY }}
+            
+            # 拉取最新镜像
+            docker pull ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/myblog:${{ env.IMAGE_TAG }}
+            
+            # 停止并删除旧容器
+            docker stop myblog-${{ env.ENV_NAME }} || true
+            docker rm myblog-${{ env.ENV_NAME }} || true
+            
+            # 运行新容器
+            docker run -d \
+              --name myblog-${{ env.ENV_NAME }} \
+              --restart always \
+              -p ${{ env.PORT }}:3000 \
+              ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/myblog:${{ env.IMAGE_TAG }}
+            
+            # 清理无用镜像
+            docker image prune -f
