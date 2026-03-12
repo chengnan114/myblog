@@ -1,9 +1,9 @@
-import ArticleCard from '@/components/ArticleCard'
-import { getLatestPosts } from '@/lib/posts'
-import SocialIcons from '@/components/SocialIcons'
+import ArticleCard from "@/components/ArticleCard";
+import { getLatestPosts } from "@/lib/posts";
+import SocialIcons from "@/components/SocialIcons";
 
 export default function Home() {
-  const posts = getLatestPosts(5)
+  const posts = getLatestPosts(5);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-12">
@@ -17,7 +17,11 @@ export default function Home() {
 
             {/* 头像主体 */}
             <div className="relative w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-purple-600 flex items-center justify-center shadow-2xl ring-4 ring-white dark:ring-gray-800 hover:scale-105 transition-transform duration-300 cursor-pointer">
-              <svg className="w-20 h-20 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-20 h-20 text-white"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
               </svg>
             </div>
@@ -26,7 +30,7 @@ export default function Home() {
 
         {/* 标题 */}
         <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          我的技术博客
+          我的技术小院
         </h1>
 
         {/* 简介 */}
@@ -51,8 +55,18 @@ export default function Home() {
             className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors inline-flex items-center"
           >
             查看全部
-            <svg className="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            <svg
+              className="w-5 h-5 ml-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 8l4 4m0 0l-4 4m4-4H3"
+              />
             </svg>
           </a>
         </div>
@@ -71,5 +85,5 @@ export default function Home() {
         </div>
       </section>
     </div>
-  )
+  );
 }
