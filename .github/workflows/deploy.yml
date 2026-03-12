@@ -1,73 +1,75 @@
-name: Multi-Environment Deploy
+name: Multi-Environment Deploy # 自动化工作流的名字：多环境部署
 
-on:
-  push:
-    branches:
-      - main
-      - develop
+on: # 触发条件
+  push: # 当代码被推送到仓库时
+    branches: # 限制在以下分支
+      - main # 推送到主分支触发
+      - develop # 推送到开发分支触发
 
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+jobs: # 具体的任务列表
+  build-and-deploy: # 任务 ID：构建与部署
+    runs-on: ubuntu-latest # 在 GitHub 提供的最新版 Ubuntu 虚拟机上运行
+    steps: # 具体的步骤
+      - name: Checkout code # 步骤 1：拉取代码
+        uses: actions/checkout@v4 # 使用官方插件将代码下载到虚拟机里
 
-      - name: Set Environment Variables
-        run: |
-          if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
-            echo "ENV_NAME=prod" >> $GITHUB_ENV
-            echo "IMAGE_TAG=latest" >> $GITHUB_ENV
-            echo "PORT=3000" >> $GITHUB_ENV
-          else
-            echo "ENV_NAME=test" >> $GITHUB_ENV
-            echo "IMAGE_TAG=dev" >> $GITHUB_ENV
-            echo "PORT=3001" >> $GITHUB_ENV
+      - name: Set Environment Variables # 步骤 2：设置环境变量
+        run: | # 运行多行脚本
+          if [[ $GITHUB_REF == 'refs/heads/main' ]]; then # 如果当前是 main 分支
+            echo "ENV_NAME=prod" >> $GITHUB_ENV # 设置环境名为 prod (生产)
+            echo "IMAGE_TAG=latest" >> $GITHUB_ENV # 设置镜像标签为 latest (最新)
+            echo "PORT=3000" >> $GITHUB_ENV # 设置部署端口为 3000
+          else # 如果不是 main 分支（即 develop 分支）
+            echo "ENV_NAME=test" >> $GITHUB_ENV # 设置环境名为 test (测试)
+            echo "IMAGE_TAG=dev" >> $GITHUB_ENV # 设置镜像标签为 dev (开发)
+            echo "PORT=3001" >> $GITHUB_ENV # 设置部署端口为 3001
           fi
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx # 步骤 3：准备 Docker 构建工具
+        uses: docker/setup-buildx-action@v3 # 安装增强版构建引擎，支持缓存加速
 
-      - name: Login to Aliyun Container Registry
-        uses: docker/login-action@v3
+      - name: Login to Aliyun Container Registry # 步骤 4：登录阿里云镜像仓库
+        uses: docker/login-action@v3 # 使用官方登录插件
         with:
-          registry: ${{ secrets.ALIYUN_REGISTRY }}
-          username: ${{ secrets.ALIYUN_USERNAME }}
-          password: ${{ secrets.ALIYUN_PASSWORD }}
+          registry: ${{ secrets.ALIYUN_REGISTRY }} # 仓库地址（从 GitHub Secrets 读取）
+          username: ${{ secrets.ALIYUN_USERNAME }} # 仓库用户名（从 GitHub Secrets 读取）
+          password: ${{ secrets.ALIYUN_PASSWORD }} # 仓库密码（从 GitHub Secrets 读取）
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      - name: Build and push Docker image # 步骤 5：打包并推送镜像
+        uses: docker/build-push-action@v5 # 使用打包推送插件
         with:
-          context: .
-          push: true
+          context: . # 使用当前目录下的文件构建
+          push: true # 构建完成后立即推送到阿里云
+          # 设置镜像的完整路径和标签
           tags: ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/myblog:${{ env.IMAGE_TAG }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha # 从 GitHub Actions 缓存中读取，加速构建
+          cache-to: type=gha,mode=max # 将本次构建结果保存到缓存，方便下次使用
 
-      - name: Deploy to Server via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Deploy to Server via SSH # 步骤 6：通过 SSH 连接服务器并部署
+        uses: appleboy/ssh-action@v1.0.3 # 使用远程命令插件
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
+          host: ${{ secrets.SERVER_HOST }} # 服务器 IP
+          username: ${{ secrets.SERVER_USER }} # 服务器登录名 (root)
+          key: ${{ secrets.SERVER_SSH_KEY }} # 之前生成的 SSH 私钥
+          # 将流水线中的变量传递给服务器脚本
           envs: ALIYUN_REGISTRY,ALIYUN_NAMESPACE,ALIYUN_USERNAME,ALIYUN_PASSWORD,IMAGE_TAG,PORT,ENV_NAME
-          script: |
-            # 登录阿里云镜像仓库
+          script: | # 在服务器上运行的命令
+            # 1. 登录阿里云镜像仓库（服务器也需要登录才能下载私有镜像）
             echo ${{ secrets.ALIYUN_PASSWORD }} | docker login --username=${{ secrets.ALIYUN_USERNAME }} --password-stdin ${{ secrets.ALIYUN_REGISTRY }}
             
-            # 拉取最新镜像
+            # 2. 从阿里云拉取刚才打包好的最新镜像
             docker pull ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/myblog:${{ env.IMAGE_TAG }}
             
-            # 停止并删除旧容器
+            # 3. 停止并删除正在运行的旧容器（加 || true 是为了防止第一次运行没旧容器时报错）
             docker stop myblog-${{ env.ENV_NAME }} || true
             docker rm myblog-${{ env.ENV_NAME }} || true
             
-            # 运行新容器
+            # 4. 运行新容器
             docker run -d \
               --name myblog-${{ env.ENV_NAME }} \
               --restart always \
               -p ${{ env.PORT }}:3000 \
               ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/myblog:${{ env.IMAGE_TAG }}
             
-            # 清理无用镜像
+            # 5. 清理服务器上旧的、没用的镜像碎片，节省磁盘空间
             docker image prune -f
