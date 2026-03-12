@@ -36,6 +36,9 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# 如果项目中没有 public 文件夹，我们创建一个空的以防止 COPY 报错
+RUN mkdir -p public
+
 COPY --from=builder /app/public ./public
 
 # Set the correct permission for prerender cache
