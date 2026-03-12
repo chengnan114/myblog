@@ -1,5 +1,5 @@
 # Check if this node_modules can be skipped for docker build
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 
 # 1. Install dependencies only when needed
 FROM base AS deps
@@ -19,6 +19,9 @@ COPY . .
 # Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
 # ENV NEXT_TELEMETRY_DISABLED=1
+
+# 增加环境变量以解决可能的内存或环境问题
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build
 
