@@ -2,7 +2,7 @@ import { getPostBySlug, getAllPosts, getAdjacentPosts } from "@/lib/posts";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { MDXContent } from "@/components/MDXComponents";
-import { Comments } from "@/components/Comments";
+// import { Comments } from "@/components/Comments";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -238,8 +238,8 @@ export default async function BlogPost({ params }: PageProps) {
           </div>
         </nav>
 
-        {/* 评论区 */}
-        <Comments />
+        {/* 评论区（已暂时关闭） */}
+        {/* <Comments /> */}
       </div>
     </div>
   );
