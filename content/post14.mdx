@@ -9,12 +9,13 @@ tags: ["Vue3", "Docker", "CI/CD", "CDN", "阿里云", "OSS", "部署"]
 
 ## 与无 CDN 方案的区别
 
-| 比较项目 | 无 CDN | 有 CDN（本文） |
-| :--- | :--- | :--- |
-| **静态资源位置** | 全在 Docker 容器内 | OSS + CDN 边缘节点 |
-| **Docker 镜像内容** | index.html + assets | 只有 index.html |
-| **访问速度** | 取决于服务器带宽 | 全国 CDN 加速 |
-| **CI/CD 阶段数** | 2 个（build → deploy） | 3 个（build → upload-cdn → deploy） |
+| 核心指标 | 纯 Docker (方案一) | Docker + CDN (方案二) |
+| --- | --- | --- |
+| 资源位置 | 全在镜像内 | OSS + CDN 托管 |
+| 镜像体积 | 较大（含静态资源） | 极小（仅 index.html） |
+| 访问性能 | 取决于服务器带宽 | 全国 CDN 节点加速 |
+| 部署难度 | 简单 | 中等（需配置 OSS） |
+| 推荐场景 | 内部系统/测试 | 正式项目/高并发 |
 
 ## 架构总览
 
