@@ -15,9 +15,12 @@ export function MDXContent({ content }: MDXContentProps) {
           code({ node, inline, className, children, ...props }: any) {
             const match = /language-(\w+)/.exec(className || "");
             const language = match ? match[1] : "";
+            
+            // 如果含有类名标识，或者内容包含换行符，说明是段落代码块 (pre > code)
+            const isBlock = match || String(children).includes('\n');
 
-            return !inline && language ? (
-              <CodeHighlight language={language} {...props}>
+            return isBlock ? (
+              <CodeHighlight language={language || "text"} {...props}>
                 {String(children).replace(/\n$/, "")}
               </CodeHighlight>
             ) : (
