@@ -1,4 +1,5 @@
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { CodeHighlight } from "./CodeHighlight";
 
 interface MDXContentProps {
@@ -9,6 +10,7 @@ export function MDXContent({ content }: MDXContentProps) {
   return (
     <div className="prose prose-lg dark:prose-invert max-w-none">
       <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
         components={{
           code({ node, inline, className, children, ...props }: any) {
             const match = /language-(\w+)/.exec(className || "");
@@ -77,6 +79,42 @@ export function MDXContent({ content }: MDXContentProps) {
               <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-4 text-gray-700 dark:text-gray-300">
                 {children}
               </blockquote>
+            );
+          },
+          table({ children }: any) {
+            return (
+              <div className="my-6 w-full overflow-y-auto">
+                <table className="w-full text-left border-collapse">
+                  {children}
+                </table>
+              </div>
+            );
+          },
+          thead({ children }: any) {
+            return <thead className="bg-gray-100 dark:bg-gray-800">{children}</thead>;
+          },
+          tbody({ children }: any) {
+            return <tbody className="bg-white dark:bg-gray-900">{children}</tbody>;
+          },
+          tr({ children }: any) {
+            return (
+              <tr className="border-b border-gray-200 dark:border-gray-700 m-0 p-0">
+                {children}
+              </tr>
+            );
+          },
+          th({ children }: any) {
+            return (
+              <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 font-bold text-gray-900 dark:text-gray-100 mt-0">
+                {children}
+              </th>
+            );
+          },
+          td({ children }: any) {
+            return (
+              <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-gray-700 dark:text-gray-300 mt-0">
+                {children}
+              </td>
             );
           },
           hr() {
