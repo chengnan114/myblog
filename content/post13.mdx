@@ -128,11 +128,34 @@ CMD ["nginx", "-g", "daemon off;"]
 
 ### 为什么用两阶段？
 
-| 特性 | 单阶段 | 两阶段 |
-| :--- | :--- | :--- |
-| **最终镜像** | Node + npm + node_modules + 源码 + dist | 只有 Nginx + dist |
-| **大小** | ~1 GB | ~30 MB |
-| **安全** | 暴露源码 | 只有生产文件 |
+<div className="my-4 overflow-x-auto">
+  <table className="w-full border-collapse border border-gray-200">
+    <thead>
+      <tr className="bg-gray-100">
+        <th className="border border-gray-200 px-4 py-2 text-left">特性</th>
+        <th className="border border-gray-200 px-4 py-2 text-left">单阶段构建</th>
+        <th className="border border-gray-200 px-4 py-2 text-left">两阶段构建</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border border-gray-200 px-4 py-2"><strong>最终镜像内容</strong></td>
+        <td className="border border-gray-200 px-4 py-2">Node + npm + 源码 + 产物</td>
+        <td className="border border-gray-200 px-4 py-2">仅 Nginx + 产物</td>
+      </tr>
+      <tr className="bg-gray-50">
+        <td className="border border-gray-200 px-4 py-2"><strong>镜像大小</strong></td>
+        <td className="border border-gray-200 px-4 py-2">~1 GB</td>
+        <td className="border border-gray-200 px-4 py-2">~30 MB</td>
+      </tr>
+      <tr>
+        <td className="border border-gray-200 px-4 py-2"><strong>安全性</strong></td>
+        <td className="border border-gray-200 px-4 py-2">暴露源码和环境</td>
+        <td className="border border-gray-200 px-4 py-2">仅暴露静态产物</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
 ---
 

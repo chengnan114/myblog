@@ -9,13 +9,39 @@ tags: ["Vue3", "Docker", "CI/CD", "CDN", "阿里云", "OSS", "部署"]
 
 ## 与无 CDN 方案的区别
 
-| 核心指标 | 纯 Docker (方案一) | Docker + CDN (方案二) |
-| --- | --- | --- |
-| 资源位置 | 全在镜像内 | OSS + CDN 托管 |
-| 镜像体积 | 较大（含静态资源） | 极小（仅 index.html） |
-| 访问性能 | 取决于服务器带宽 | 全国 CDN 节点加速 |
-| 部署难度 | 简单 | 中等（需配置 OSS） |
-| 推荐场景 | 内部系统/测试 | 正式项目/高并发 |
+<div className="my-4 overflow-x-auto">
+  <table className="w-full border-collapse border border-gray-200">
+    <thead>
+      <tr className="bg-gray-100">
+        <th className="border border-gray-200 px-4 py-2 text-left">比较项目</th>
+        <th className="border border-gray-200 px-4 py-2 text-left">纯 Docker (方案一)</th>
+        <th className="border border-gray-200 px-4 py-2 text-left">Docker + CDN (方案二)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border border-gray-200 px-4 py-2"><strong>静态资源位置</strong></td>
+        <td className="border border-gray-200 px-4 py-2">全在 Docker 容器内</td>
+        <td className="border border-gray-200 px-4 py-2">OSS + CDN 边缘节点</td>
+      </tr>
+      <tr className="bg-gray-50">
+        <td className="border border-gray-200 px-4 py-2"><strong>Docker 镜像内容</strong></td>
+        <td className="border border-gray-200 px-4 py-2">index.html + assets</td>
+        <td className="border border-gray-200 px-4 py-2">只有 index.html</td>
+      </tr>
+      <tr>
+        <td className="border border-gray-200 px-4 py-2"><strong>访问速度</strong></td>
+        <td className="border border-gray-200 px-4 py-2">取决于服务器带宽</td>
+        <td className="border border-gray-200 px-4 py-2">全国 CDN 加速</td>
+      </tr>
+      <tr className="bg-gray-50">
+        <td className="border border-gray-200 px-4 py-2"><strong>CI/CD 阶段数</strong></td>
+        <td className="border border-gray-200 px-4 py-2">2 个 (build/deploy)</td>
+        <td className="border border-gray-200 px-4 py-2">3 个 (+upload-cdn)</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
 ## 架构总览
 
