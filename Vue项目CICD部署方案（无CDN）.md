@@ -4,24 +4,24 @@
 
 ## 架构总览
 
-```
-开发者 git push
-      ↓
-GitLab CI/CD 触发
-      ↓
-┌── build stage ───────────────────────┐
-│  docker build（读取 Dockerfile）       │
-│  ├── Node 环境 npm ci + npm run build │
-│  └── 产物 COPY 到 Nginx 镜像          │
-│  docker push → GitLab Registry       │
-└──────────────────────────────────────┘
-      ↓
-┌── deploy stage ──────────────────────┐
-│  SSH 到服务器                         │
-│  docker pull → docker run            │
-└──────────────────────────────────────┘
-      ↓
-用户 → 宿主机 Nginx(:80) → Docker Nginx(:8080) → 静态文件
+```mermaid
+graph TD
+    Start[开发者 git push] --> CI[GitLab CI/CD 触发]
+    
+    subgraph "Build 阶段 (构建镜像)"
+        CI --> Build[docker build]
+        Build --> Node[Node 环境打包]
+        Node --> Copy[产物 COPY 到 Nginx 镜像]
+        Copy --> Push[docker push 到镜像仓库]
+    end
+    
+    subgraph "Deploy 阶段 (部署容器)"
+        Push --> SSH[SSH 到服务器]
+        SSH --> Pull[docker pull 镜像]
+        Pull --> Run[docker run 启动容器]
+    end
+    
+    Run --> Web[用户通过 Nginx 访问]
 ```
 
 ---
@@ -280,32 +280,29 @@ docker stop vue-test && docker rm vue-test
 
 ## 完整执行时序
 
-```
-开发者 git push main
-      ↓
-GitLab 读取 .gitlab-ci.yml，启动 Pipeline
-      ↓
-┌── build stage ──────────────────────────────────┐
-│  ① Runner 启动 docker:24 容器                    │
-│  ② 执行 docker build .                           │
-│     ↓ 读取 Dockerfile                            │
-│     ├── FROM node:20-alpine                      │
-│     ├── npm ci（安装依赖）                        │
-│     ├── npm run build（生成 dist/）               │
-│     ├── FROM nginx:alpine                        │
-│     └── COPY dist → nginx html（~30MB 精简镜像）  │
-│  ③ docker push → 推送到 GitLab Registry          │
-└─────────────────────────────────────────────────┘
-      ↓
-┌── deploy stage ─────────────────────────────────┐
-│  ① Runner 启动 alpine 容器                       │
-│  ② SSH 到你的阿里云服务器                         │
-│  ③ docker pull → 拉取最新镜像                     │
-│  ④ docker stop/rm → 停掉旧容器                    │
-│  ⑤ docker run → 启动新容器                        │
-└─────────────────────────────────────────────────┘
-      ↓
-✅ 部署完成，用户看到最新版本
+```mermaid
+sequenceDiagram
+    participant Dev as 开发者
+    participant GitLab as GitLab CI/CD
+    participant Registry as 镜像仓库
+    participant Server as 阿里云服务器
+
+    Dev->>GitLab: git push main
+    activate GitLab
+    Note over GitLab: Build Stage
+    GitLab->>GitLab: npm ci & npm run build
+    GitLab->>GitLab: docker build
+    GitLab->>Registry: docker push
+    deactivate GitLab
+
+    activate GitLab
+    Note over GitLab: Deploy Stage
+    GitLab->>Server: SSH 登录
+    Server->>Registry: docker pull
+    Server->>Server: stop & rm 旧容器
+    Server->>Server: docker run 新容器
+    Note right of Server: ✅ 部署完成
+    deactivate GitLab
 ```
 
 ---

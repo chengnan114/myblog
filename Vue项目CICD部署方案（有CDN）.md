@@ -4,28 +4,28 @@
 
 ## 架构总览
 
-```
-开发者 git push
-      ↓
-GitLab CI/CD 触发
-      ↓
-┌── build stage ────────────────────────┐
-│  npm ci + npm run build → 生成 dist/  │
-└───────────────────────────────────────┘
-      ↓
-┌── upload-cdn stage ──────────────────┐
-│  dist/assets/ → 上传到阿里云 OSS      │
-│  OSS → CDN 自动分发到全国边缘节点     │
-└──────────────────────────────────────┘
-      ↓
-┌── deploy stage ──────────────────────┐
-│  dist/（去掉 assets）→ Docker 构建    │
-│  docker push → SSH 部署到服务器       │
-└──────────────────────────────────────┘
-      ↓
-用户访问：
-  index.html        ← Nginx（源站服务器）
-  assets/js/css/img ← CDN 边缘节点（就近加速）
+```mermaid
+graph TD
+    Start[开发者 git push] --> CI[GitLab CI/CD 触发]
+    
+    subgraph "Build 阶段 (打包)"
+        CI --> Build[npm ci & build]
+        Build --> Dist[生成 dist/ 产物]
+    end
+    
+    subgraph "Upload-CDN 阶段 (上传)"
+        Dist --> OSS[ossutil 上传 dist/assets/ 到 OSS]
+        OSS --> CDN[CDN 自动从 OSS 拉取并加速]
+    end
+    
+    subgraph "Deploy 阶段 (部署容器)"
+        Dist --> Docker[docker build (仅包含 index.html)]
+        Docker --> Push[docker push 到镜像仓库]
+        Push --> SSH[SSH 部署到服务器]
+        SSH --> Run[docker run 启动新容器]
+    end
+    
+    Run --> User[用户访问网站]
 ```
 
 ### 与无 CDN 方案的核心区别
@@ -342,37 +342,31 @@ server {
 
 ## 完整执行时序
 
-```
-开发者 git push main
-      ↓
-GitLab 读取 .gitlab-ci.yml
-      ↓
-┌── build stage ──────────────────────────────────┐
-│  Runner 启动 node:20-alpine 容器                 │
-│  ├── npm ci（安装依赖）                           │
-│  └── npm run build（生成 dist/）                  │
-│  将 dist/ 作为 artifact 传给后续阶段              │
-└─────────────────────────────────────────────────┘
-      ↓
-┌── upload-cdn stage ─────────────────────────────┐
-│  Runner 启动 alpine 容器                          │
-│  ├── 安装 ossutil                                │
-│  └── 上传 dist/assets/ → 阿里云 OSS              │
-│  CDN 自动从 OSS 拉取并缓存到全国节点               │
-└─────────────────────────────────────────────────┘
-      ↓
-┌── deploy stage ─────────────────────────────────┐
-│  Runner 启动 docker:24 容器                       │
-│  ├── rm -rf dist/assets/（已在 OSS，不需要了）     │
-│  ├── docker build（只有 index.html 的精简镜像）    │
-│  ├── docker push → GitLab Registry               │
-│  ├── SSH 到阿里云服务器                            │
-│  ├── docker pull                                  │
-│  ├── docker stop/rm 旧容器                        │
-│  └── docker run 新容器                            │
-└─────────────────────────────────────────────────┘
-      ↓
-✅ 部署完成
+```mermaid
+sequenceDiagram
+    participant Dev as 开发者
+    participant GitLab as GitLab CI/CD
+    participant OSS as 阿里云 OSS/CDN
+    participant Server as 阿里云服务器
+
+    Dev->>GitLab: git push main
+    activate GitLab
+    Note over GitLab: Build Stage
+    GitLab->>GitLab: npm ci & build
+    deactivate GitLab
+
+    activate GitLab
+    Note over GitLab: Upload-CDN Stage
+    GitLab->>OSS: 上传 dist/assets/
+    deactivate GitLab
+
+    activate GitLab
+    Note over GitLab: Deploy Stage
+    GitLab->>GitLab: docker build (精简镜像)
+    GitLab->>Server: SSH 远程部署
+    Server->>Server: docker pull & run
+    Note right of Server: ✅ 部署完成
+    deactivate GitLab
 ```
 
 ---
