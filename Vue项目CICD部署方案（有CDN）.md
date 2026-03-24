@@ -30,12 +30,12 @@ graph TD
 
 ### 与无 CDN 方案的核心区别
 
-| | 无 CDN | 有 CDN |
-|--|-------|--------|
-| 静态资源位置 | 全在 Docker 容器内 | OSS + CDN |
-| Docker 镜像内容 | index.html + assets | 只有 index.html |
-| 镜像大小 | ~30MB | 更小 |
-| 访问速度 | 取决于服务器带宽 | 全国 CDN 加速 |
+| 比较项目 | 无 CDN | 有 CDN |
+| :--- | :--- | :--- |
+| **静态资源位置** | 全全在 Docker 容器内 | OSS + CDN |
+| **Docker 镜像内容** | index.html + assets | 只有 index.html |
+| **镜像大小** | ~30MB | 更小 |
+| **访问速度** | 取决于服务器带宽 | 全国 CDN 加速 |
 
 ---
 
